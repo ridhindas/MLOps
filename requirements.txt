@@ -4,3 +4,6 @@ scikit-learn
 pandas
 mlflow
 pydantic
+evidently
+requests
+
