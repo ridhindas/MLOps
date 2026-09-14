@@ -42,5 +42,5 @@ def automated_continuous_training():
     else:
         print("No significant drift detected. Retraining skipped.")
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     automated_continuous_training()

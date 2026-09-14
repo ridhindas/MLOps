@@ -37,4 +37,8 @@ def check_data_drift():
     return dataset_drift
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     check_data_drift()
+=======
+    check_data_drift()
+>>>>>>> 785c65cecc2031c1e43d5e45aadbc4f5b04a0d86
