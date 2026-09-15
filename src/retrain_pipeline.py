@@ -43,9 +43,7 @@ with mlflow.start_run(run_name="automated_retrain_run"):
         registered_model_name=MODEL_NAME,
     )
 
-    print(
-        f"Retraining completed. New Model Accuracy: {accuracy:.4f}"
-    )
+    print(f"Retraining completed. New Model Accuracy: {accuracy:.4f}")
     print(
         f"Updated version registered to MLflow Model Registry: "
         f"{MODEL_NAME}"
@@ -64,14 +62,9 @@ if drift_detected:
         "Drift threshold breached! "
         "Triggering automated retraining..."
     )
-
     return train_and_register_model()
 
-print(
-    "No significant drift detected. "
-    "Retraining skipped."
-)
-
+print("No significant drift detected. Retraining skipped.")
 return None
 
 def automated_continuous_training():
