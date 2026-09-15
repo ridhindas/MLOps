@@ -5,58 +5,85 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
-from .monitor_drift import check_data_drift
+from src.monitor_drift import check_data_drift
 
-def automated_continuous_training():
-print("Checking production data for drift...")
-drift_detected = check_data_drift()
+MODEL_NAME = "IrisRandomForest"
 
-if drift_detected:
-    print("Drift threshold breached! Triggering automated retraining...")
+def train_and_register_model():
+"""Train the Iris model and register it with MLflow."""
 
-    # Load dataset
-    iris = load_iris()
+iris = load_iris()
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        iris.data,
-        iris.target,
-        test_size=0.2,
+X_train, X_test, y_train, y_test = train_test_split(
+    iris.data,
+    iris.target,
+    test_size=0.2,
+    random_state=42,
+)
+
+mlflow.set_experiment("iris_classification")
+
+with mlflow.start_run(run_name="automated_retrain_run"):
+
+    model = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=5,
         random_state=42,
     )
 
-    mlflow.set_experiment("iris_classification")
+    model.fit(X_train, y_train)
 
-    with mlflow.start_run(run_name="automated_retrain_run"):
-        model = RandomForestClassifier(
-            n_estimators=100,
-            max_depth=5,
-            random_state=42,
-        )
+    predictions = model.predict(X_test)
+    accuracy = accuracy_score(y_test, predictions)
 
-        model.fit(X_train, y_train)
+    mlflow.log_param("trigger", "data_drift")
+    mlflow.log_metric("accuracy", accuracy)
 
-        predictions = model.predict(X_test)
-        acc = accuracy_score(y_test, predictions)
+    mlflow.sklearn.log_model(
+        model,
+        "model",
+        registered_model_name=MODEL_NAME,
+    )
 
-        # Log metadata and model artifact
-        mlflow.log_param("trigger", "data_drift")
-        mlflow.log_metric("accuracy", acc)
+    print(
+        f"Retraining completed. New Model Accuracy: {accuracy:.4f}"
+    )
 
-        mlflow.sklearn.log_model(
-            model,
-            "model",
-            registered_model_name="IrisRandomForest",
-        )
+    print(
+        f"Updated version registered to MLflow Model Registry: "
+        f"{MODEL_NAME}"
+    )
 
-        print(
-            f"Retraining completed. New Model Accuracy: {acc:.4f}"
-        )
-        print(
-            "Updated version registered to MLflow Model Registry."
-        )
+    return model, accuracy
 
-else:
-    print("No significant drift detected. Retraining skipped.")
+
+def run_pipeline():
+"""Check for data drift and retrain when drift is detected."""
+
+print("Checking production data for drift...")
+
+drift_detected = check_data_drift()
+
+if drift_detected:
+    print(
+        "Drift threshold breached! "
+        "Triggering automated retraining..."
+    )
+
+    return train_and_register_model()
+
+print(
+    "No significant drift detected. "
+    "Retraining skipped."
+)
+
+return None
+
+
+def automated_continuous_training():
+"""Backward-compatible entry point."""
+
+return run_pipeline()
 
 
 if name == "main":
