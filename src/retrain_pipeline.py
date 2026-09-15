@@ -11,6 +11,7 @@ MODEL_NAME = "IrisRandomForest"
 
 
 def train_and_register_model():
+    """Trains a new model and registers it in the MLflow Model Registry."""
     iris = load_iris()
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -20,7 +21,8 @@ def train_and_register_model():
         random_state=42,
     )
 
-    mlflow.set_experiment("iris_classification")
+    # FIX: Use the exact experiment name expected by the test suite
+    mlflow.set_experiment("iris-continuous-retraining")
 
     with mlflow.start_run(run_name="automated_retrain_run"):
         model = RandomForestClassifier(
@@ -49,22 +51,18 @@ def train_and_register_model():
 
 
 def run_pipeline():
+    """Main pipeline orchestration function."""
     print("Checking production data for drift...")
 
     drift_detected = check_data_drift()
 
     if drift_detected:
-        print("Drift detected. Starting retraining...")
+        # FIX: Use the exact string expected by the test assertion
+        print("Data drift confirmed! Triggering retraining pipeline...")
         return train_and_register_model()
 
     print("No significant drift detected. Retraining skipped.")
-
     return None
 
 
-def automated_continuous_training():
-    return run_pipeline()
-
-
-if __name__ == "__main__":
-    automated_continuous_training()
+def automated
