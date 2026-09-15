@@ -4,6 +4,7 @@ from sklearn.datasets import load_iris
 from evidently import Report
 from evidently.presets import DataDriftPreset
 
+
 def check_data_drift():
     # 1. Load reference data (Iris training baseline)
     iris = load_iris(as_frame=True)
@@ -21,7 +22,8 @@ def check_data_drift():
     except Exception as e:
         print(f"HTML Report rendering skipped: {e}")
 
-    # 4. Statistically check drift using Kolmogorov-Smirnov test (p-value < 0.05 indicates drift)
+    # 4. Statistically check drift using Kolmogorov-Smirnov test
+    #    (p-value < 0.05 indicates drift)
     drifted_columns = 0
     feature_cols = iris.feature_names
 
@@ -33,12 +35,9 @@ def check_data_drift():
     # Threshold: Declare dataset drift if 50%+ features drifted
     dataset_drift = drifted_columns >= (len(feature_cols) / 2)
     print(f"Dataset Drift Detected: {dataset_drift}")
-    
+
     return dataset_drift
 
+
 if __name__ == "__main__":
-<<<<<<< HEAD
     check_data_drift()
-=======
-    check_data_drift()
->>>>>>> 785c65cecc2031c1e43d5e45aadbc4f5b04a0d86
