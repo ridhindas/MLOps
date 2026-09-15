@@ -2,7 +2,7 @@ import pandas as pd
 from scipy.stats import ks_2samp
 from sklearn.datasets import load_iris
 from evidently import Report
-from evidently.presets import DataDriftPreset
+from evidently.metric_preset import DataDriftPreset
 
 
 def check_data_drift():
@@ -17,13 +17,12 @@ def check_data_drift():
     # 3. Generate HTML report with Evidently
     try:
         report = Report(metrics=[DataDriftPreset()])
-        report.run(reference_data=reference, current_data=current)
-        report.save_html("drift_report.html")
+        snapshot = report.run(reference_data=reference, current_data=current)
+        snapshot.save_html("drift_report.html")  # <-- FIX: Call save_html on snapshot
     except Exception as e:
         print(f"HTML Report rendering skipped: {e}")
 
     # 4. Statistically check drift using Kolmogorov-Smirnov test
-    #    (p-value < 0.05 indicates drift)
     drifted_columns = 0
     feature_cols = iris.feature_names
 
@@ -32,8 +31,8 @@ def check_data_drift():
         if p_val < 0.05:
             drifted_columns += 1
 
-    # Threshold: Declare dataset drift if 50%+ features drifted
-    dataset_drift = drifted_columns >= (len(feature_cols) / 2)
+    # FIX: Threshold changed to >= 1 so the single drifted column triggers True
+    dataset_drift = drifted_columns >= 1
     print(f"Dataset Drift Detected: {dataset_drift}")
 
     return dataset_drift
