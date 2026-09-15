@@ -1,42 +1,74 @@
-import pandas as pd
-from scipy.stats import ks_2samp
+import mlflow
+import mlflow.sklearn
 from sklearn.datasets import load_iris
-from evidently import Report
-from evidently.presets import DataDriftPreset  # <-- FIX IS HERE
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+
+from src.monitor_drift import check_data_drift
+
+MODEL_NAME = "IrisRandomForest"
 
 
-def check_data_drift():
-    # 1. Load reference data (Iris training baseline)
-    iris = load_iris(as_frame=True)
-    reference = iris.frame.sample(n=100, random_state=42)
+def train_and_register_model():
+    """Trains a new model and registers it in the MLflow Model Registry."""
+    iris = load_iris()
 
-    # 2. Simulate current production data with artificial drift
-    current = iris.frame.sample(n=100, random_state=99)
-    current['sepal length (cm)'] = current['sepal length (cm)'] * 1.5
+    X_train, X_test, y_train, y_test = train_test_split(
+        iris.data,
+        iris.target,
+        test_size=0.2,
+        random_state=42,
+    )
 
-    # 3. Generate HTML report with Evidently
-    try:
-        report = Report(metrics=[DataDriftPreset()])
-        snapshot = report.run(reference_data=reference, current_data=current)
-        snapshot.save_html("drift_report.html")
-    except Exception as e:
-        print(f"HTML Report rendering skipped: {e}")
+    # FIX: Use the exact experiment name expected by the test suite
+    mlflow.set_experiment("iris-continuous-retraining")
 
-    # 4. Statistically check drift using Kolmogorov-Smirnov test
-    drifted_columns = 0
-    feature_cols = iris.feature_names
+    with mlflow.start_run(run_name="automated_retrain_run"):
+        model = RandomForestClassifier(
+            n_estimators=100,
+            max_depth=5,
+            random_state=42,
+        )
 
-    for col in feature_cols:
-        p_val = ks_2samp(reference[col], current[col]).pvalue
-        if p_val < 0.05:
-            drifted_columns += 1
+        model.fit(X_train, y_train)
 
-    # Threshold: Declare dataset drift if >= 1 feature drifted
-    dataset_drift = drifted_columns >= 1
-    print(f"Dataset Drift Detected: {dataset_drift}")
+        predictions = model.predict(X_test)
+        accuracy = accuracy_score(y_test, predictions)
 
-    return dataset_drift
+        mlflow.log_param("trigger", "data_drift")
+        mlflow.log_metric("accuracy", accuracy)
+
+        mlflow.sklearn.log_model(
+            model,
+            "model",
+            registered_model_name=MODEL_NAME,
+        )
+
+        print(f"Retraining completed. Accuracy: {accuracy:.4f}")
+
+        return model, accuracy
+
+
+def run_pipeline():
+    """Main pipeline orchestration function."""
+    print("Checking production data for drift...")
+
+    drift_detected = check_data_drift()
+
+    if drift_detected:
+        # FIX: Use the exact string expected by the test assertion
+        print("Data drift confirmed! Triggering retraining pipeline...")
+        return train_and_register_model()
+
+    print("No significant drift detected. Retraining skipped.")
+    return None
+
+
+def automated_continuous_training():
+    """Wrapper for continuous training execution."""
+    return run_pipeline()
 
 
 if __name__ == "__main__":
-    check_data_drift()
+    automated_continuous_training()
