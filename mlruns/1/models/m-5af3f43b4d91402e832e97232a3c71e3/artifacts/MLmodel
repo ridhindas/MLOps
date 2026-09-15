@@ -1,4 +1,4 @@
-artifact_path: file:///C:/Users/hp/Desktop/AIMLOps/mlruns/1/models/m-5af3f43b4d91402e832e97232a3c71e3/artifacts
+artifact_path: .
 flavors:
   python_function:
     env:
