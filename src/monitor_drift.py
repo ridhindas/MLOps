@@ -2,7 +2,7 @@ import pandas as pd
 from scipy.stats import ks_2samp
 from sklearn.datasets import load_iris
 from evidently import Report
-from evidently.metric_preset import DataDriftPreset
+from evidently.presets import DataDriftPreset  # <-- FIX IS HERE
 
 
 def check_data_drift():
@@ -18,7 +18,7 @@ def check_data_drift():
     try:
         report = Report(metrics=[DataDriftPreset()])
         snapshot = report.run(reference_data=reference, current_data=current)
-        snapshot.save_html("drift_report.html")  # <-- FIX: Call save_html on snapshot
+        snapshot.save_html("drift_report.html")
     except Exception as e:
         print(f"HTML Report rendering skipped: {e}")
 
@@ -31,7 +31,7 @@ def check_data_drift():
         if p_val < 0.05:
             drifted_columns += 1
 
-    # FIX: Threshold changed to >= 1 so the single drifted column triggers True
+    # Threshold: Declare dataset drift if >= 1 feature drifted
     dataset_drift = drifted_columns >= 1
     print(f"Dataset Drift Detected: {dataset_drift}")
 
