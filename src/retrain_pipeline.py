@@ -10,7 +10,7 @@ from src.monitor_drift import check_data_drift
 MODEL_NAME = "IrisRandomForest"
 
 def train_and_register_model():
-iris = load_iris()
+    iris = load_iris()
 
 X_train, X_test, y_train, y_test = train_test_split(
     iris.data,
