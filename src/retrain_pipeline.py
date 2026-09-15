@@ -9,57 +9,62 @@ from src.monitor_drift import check_data_drift
 
 MODEL_NAME = "IrisRandomForest"
 
+
 def train_and_register_model():
     iris = load_iris()
 
-X_train, X_test, y_train, y_test = train_test_split(
-    iris.data,
-    iris.target,
-    test_size=0.2,
-    random_state=42
-)
-
-mlflow.set_experiment("iris_classification")
-
-with mlflow.start_run(run_name="automated_retrain_run"):
-    model = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=5,
-        random_state=42
+    X_train, X_test, y_train, y_test = train_test_split(
+        iris.data,
+        iris.target,
+        test_size=0.2,
+        random_state=42,
     )
 
-    model.fit(X_train, y_train)
+    mlflow.set_experiment("iris_classification")
 
-    predictions = model.predict(X_test)
-    accuracy = accuracy_score(y_test, predictions)
+    with mlflow.start_run(run_name="automated_retrain_run"):
+        model = RandomForestClassifier(
+            n_estimators=100,
+            max_depth=5,
+            random_state=42,
+        )
 
-    mlflow.log_param("trigger", "data_drift")
-    mlflow.log_metric("accuracy", accuracy)
+        model.fit(X_train, y_train)
 
-    mlflow.sklearn.log_model(
-        model,
-        "model",
-        registered_model_name=MODEL_NAME
-    )
+        predictions = model.predict(X_test)
+        accuracy = accuracy_score(y_test, predictions)
 
-    print(f"Retraining completed. Accuracy: {accuracy:.4f}")
+        mlflow.log_param("trigger", "data_drift")
+        mlflow.log_metric("accuracy", accuracy)
 
-    return model, accuracy
+        mlflow.sklearn.log_model(
+            model,
+            "model",
+            registered_model_name=MODEL_NAME,
+        )
+
+        print(f"Retraining completed. Accuracy: {accuracy:.4f}")
+
+        return model, accuracy
+
 
 def run_pipeline():
-print("Checking production data for drift...")
+    print("Checking production data for drift...")
 
-drift_detected = check_data_drift()
+    drift_detected = check_data_drift()
 
-if drift_detected:
-    print("Drift detected. Starting retraining...")
-    return train_and_register_model()
+    if drift_detected:
+        print("Drift detected. Starting retraining...")
+        return train_and_register_model()
 
-print("No significant drift detected. Retraining skipped.")
-return None
+    print("No significant drift detected. Retraining skipped.")
+
+    return None
+
 
 def automated_continuous_training():
-return run_pipeline()
+    return run_pipeline()
 
-if name == "main":
-automated_continuous_training()
+
+if __name__ == "__main__":
+    automated_continuous_training()
